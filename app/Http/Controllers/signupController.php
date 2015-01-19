@@ -5,7 +5,7 @@ use Illuminate\Contracts\Auth\Guard;
 use Ellie\Organization;
 use Ellie\User;
 
-class signupController extends Controller {
+class SignupController extends Controller {
 
 
 	protected $auth;
