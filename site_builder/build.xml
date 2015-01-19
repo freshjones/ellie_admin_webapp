@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="createSite" default="dist">
+
+    <!-- ============================================  -->
+    <!-- Target: prepare                               -->
+    <!-- ============================================  -->
+    <target name="prepare">
+        <echo msg="Making directory ./build" />
+        <mkdir dir="./build/${builddir}" />
+        <!--
+        <touch file="./build/${builddir}/test.txt" />
+        <echo file="./build/${builddir}/test.txt" append="true" message="name:${sitename}${line.separator}template:${sitetemplate}${line.separator}color:${sitecolor}"/>
+        -->
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: clone                                 -->
+    <!-- ============================================  -->
+    <target name="clone" depends="prepare">
+        <echo msg="Cloning Repository" />
+        <!-- <exec command="git clone https://github.com/freshjones/elliesite_laravel.git ./build/${builddir}/" /> -->
+        <gitclone repository="https://github.com/freshjones/elliesite_laravel.git" targetPath="./build/${builddir}/" />
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: copy                                 -->
+    <!-- ============================================  -->
+    <target name="copy" depends="clone">
+        <echo msg="Copying files to apps directory..." />
+        <move file="./build/${builddir}" tofile="/home/vagrant/apps/${builddir}" overwrite="true"/>
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: serve                                 -->
+    <!-- ============================================  -->
+    <target name="serve" depends="copy">
+        <echo msg="Setting up webserver" />
+        <exec command="sudo bash /vagrant/scripts/serve.sh ${builddir}.ellie.app /home/vagrant/apps/${builddir}/public" />
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: cleanup                                 -->
+    <!-- ============================================  -->
+    <target name="cleanup" depends="serve">
+        <echo msg="Cleaning up" />
+        <delete dir="./build" includeemptydirs="true" verbose="true" failonerror="true" />
+    </target>
+
+    <!-- ============================================  -->
+    <!-- (DEFAULT)  Target: dist                       -->
+    <!-- ============================================  -->
+    <target name="dist" depends="cleanup">
+        <echo msg="Files copied and compressed in build directory OK!" />
+    </target>
+
+</project>

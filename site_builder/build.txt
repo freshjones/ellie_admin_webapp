@@ -1,0 +1,18 @@
+[00;36mBuildfile: /home/vagrant/apps/ellie/site_builder/build.xml[0m
+[00;32m
+createSite > prepare:
+[0m
+[00;36m     [echo] Making directory ./build[0m
+[00;32m
+createSite > build:
+[0m
+[00;36m     [echo] Copying files to build directory...[0m
+[00;32m
+createSite > dist:
+[0m
+[00;36m     [echo] Files copied and compressed in build directory OK![0m
+[00;32m
+BUILD FINISHED
+
+Total time: 0.2221 seconds
+[0m
