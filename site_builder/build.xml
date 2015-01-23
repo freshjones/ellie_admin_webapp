@@ -1,57 +1,111 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project name="createSite" default="dist">
+<project name="createSiteContainer" default="create">
+
+    <!-- Load configuration -->
+    <property file="./build.properties" />
 
     <!-- ============================================  -->
-    <!-- Target: prepare                               -->
+    <!-- (DEFAULT)  Target: Create a site container    -->
     <!-- ============================================  -->
+
     <target name="prepare">
         <echo msg="Making directory ./build" />
-        <mkdir dir="./build/${builddir}" />
-        <!--
-        <touch file="./build/${builddir}/test.txt" />
-        <echo file="./build/${builddir}/test.txt" append="true" message="name:${sitename}${line.separator}template:${sitetemplate}${line.separator}color:${sitecolor}"/>
-        -->
+        <mkdir dir="./build/${siteurl}" />
+    </target>
+
+    <target name="getport" depends="prepare" >
+        <taskdef name="getport" classname="tasks.getPortTask" />
+        <getport port="49153" />
+        <echo msg="Container port is: ${config.usePort}" />
+    </target>
+
+    <target name="run" depends="getport" >
+        <exec command="${progs.docker} run -d -p ${config.usePort}:80 --name=${siteurl} freshjones/ellie_site:latest" outputProperty="siteRunning"/>
+        <echo msg="Site Running ${siteRunning}" />
+    </target>
+
+    <target name="info" depends="run" >
+        <exec command="${progs.docker} inspect ${siteurl} > ./build/${siteurl}/container.txt" />
+        <echo msg="Site File Created" />
+    </target>
+
+    <target name="parse-info" depends="info" >
+        <taskdef name="parsejson" classname="tasks.parseJsonTask" />
+        <loadfile property="containerinfo" file="./build/${siteurl}/container.txt"/>
+        <parsejson jsonfile="${containerinfo}" />
+    </target>
+
+    <target name="sqlfile" depends="parse-info" >
+        <echo msg="UPDATE sites SET
+            status='ready',
+            container='${site.container.data}',
+            host_ip='${site.host.ip}',
+            container_id='${site.container.id}',
+            container_ip='${site.container.ip}',
+            container_image='${site.container.image}',
+            container_port='${site.container.port}'
+            WHERE id=${siteid}
+            AND userid=${siteuid}"
+            file="./build/${siteurl}/container.sql" />
+        <echo msg="SQL file created" />
+    </target>
+
+    <target name="pause" depends="sqlfile" >
+        <taskdef name="sleepcheck" classname="tasks.sleepTask" />
+        <sleepcheck amount="2" />
+        <echo msg="Ok Lets keep going" />
+    </target>
+
+    <target name="sitecheck" depends="pause" >
+        <if>
+            <istrue value="${config.runCheck}"/>
+            <then>
+                <exec command="${progs.curl} -sL -w '%{http_code}' '${site.host.ip}:${site.container.port}' -o /dev/null" outputProperty="config.siteCheck"/>
+                <echo msg="${config.siteCheck}" />
+            </then>
+            <else>
+                <echo msg="couldn't run site check for some reason" />
+            </else>
+        </if>
+    </target>
+
+    <target name="store" depends="sitecheck" >
+        <if>
+            <equals arg1="${config.siteCheck}" arg2="200" />
+            <then>
+                <exec command="${progs.mysql} -u${db.user} -p${db.pass} ${db.name} &lt; ./build/${siteurl}/container.sql" />
+                <echo msg="Site info stored" />
+            </then>
+            <else>
+                <echo msg="The site check failed for some reason" />
+            </else>
+        </if>
+    </target>
+
+    <target name="cleanup_create" depends="store" >
+        <delete dir="./build/${siteurl}" includeemptydirs="true" verbose="true" failonerror="true" />
+        <echo msg="Deleted build dir" />
+    </target>
+
+    <target name="create" depends="cleanup_create" >
+        <echo msg="Site Created" />
+    </target>
+
+<!-- ============================================  -->
+    <!-- Target: destroy a site container              -->
+    <!-- ============================================  -->
+    <target name="destroy" >
+        <exec command="docker stop ${siteurl} &amp;&amp; docker rm ${siteurl}" />
+        <echo msg="Site Removed" />
     </target>
 
     <!-- ============================================  -->
-    <!-- Target: clone                                 -->
+    <!-- Target: restart a site container              -->
     <!-- ============================================  -->
-    <target name="clone" depends="prepare">
-        <echo msg="Cloning Repository" />
-        <!-- <exec command="git clone https://github.com/freshjones/elliesite_laravel.git ./build/${builddir}/" /> -->
-        <gitclone repository="https://github.com/freshjones/elliesite_laravel.git" targetPath="./build/${builddir}/" />
-    </target>
-
-    <!-- ============================================  -->
-    <!-- Target: copy                                 -->
-    <!-- ============================================  -->
-    <target name="copy" depends="clone">
-        <echo msg="Copying files to apps directory..." />
-        <move file="./build/${builddir}" tofile="/home/vagrant/apps/${builddir}" overwrite="true"/>
-    </target>
-
-    <!-- ============================================  -->
-    <!-- Target: serve                                 -->
-    <!-- ============================================  -->
-    <target name="serve" depends="copy">
-        <echo msg="Setting up webserver" />
-        <exec command="sudo bash /vagrant/scripts/serve.sh ${builddir}.ellie.app /home/vagrant/apps/${builddir}/public" />
-    </target>
-
-    <!-- ============================================  -->
-    <!-- Target: cleanup                                 -->
-    <!-- ============================================  -->
-    <target name="cleanup" depends="serve">
-        <echo msg="Cleaning up" />
-        <delete dir="./build" includeemptydirs="true" verbose="true" failonerror="true" />
-    </target>
-
-    <!-- ============================================  -->
-    <!-- (DEFAULT)  Target: dist                       -->
-    <!-- ============================================  -->
-    <target name="dist" depends="cleanup">
-        <echo msg="Files copied and compressed in build directory OK!" />
+    <target name="restart" >
+        <exec command="docker restart ${siteurl}" />
+        <echo msg="Site Restarted" />
     </target>
 
 </project>

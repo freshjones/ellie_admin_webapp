@@ -48,17 +48,22 @@ class SiteBuilder {
 	{
 
 		/*
-		 * array:4 [▼
-			  "name" => "billy"
-			  "url" => "billy"
-			  "template_id" => "1"
-			  "colorscheme_id" => "1"
-			]
+		array:7 [▼
+		  "name" => "test8"
+		  "url" => "test8"
+		  "template_id" => "2"
+		  "colorscheme_id" => "2"
+		  "updated_at" => "2015-01-21 17:10:34"
+		  "created_at" => "2015-01-21 17:10:34"
+		  "id" => 6
+		]
 		 */
 
 		//execute the site builder script
-		$command = getenv('PHING') . ' -f ' . getenv('SITEBUILDER') . '/build.xml'
-						. ' -Dbuilddir="' . $data['url']. '"'
+		$command = getenv('PHING') . ' create -f ' . getenv('SITEBUILDER') . '/build.xml'
+						. ' -Dsiteid="' . $data['id']. '"'
+						. ' -Dsiteuid="' . $data['userid']. '"'
+						. ' -Dsiteurl="' . $data['url']. '"'
 						. ' -Dsitename="' . $data['name'] . '"'
 						. ' -Dsitetemplate="' . $data['template_id'] . '"'
 						. ' -Dsitecolor="' . $data['colorscheme_id'] . '"'

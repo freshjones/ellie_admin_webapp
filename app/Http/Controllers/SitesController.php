@@ -14,9 +14,9 @@ class SitesController extends EllieController {
 	 */
 	public function index()
 	{
+		$userid = $this->auth->user()->getAuthIdentifier();
 
-		$sites = Sites::all();
-
+		$sites = Sites::where('userid', '=', $userid)->get();
 
 		return view('pages.sites.index', ['user' => $this->auth->user(), 'sites' => $sites] );
 	}
@@ -41,9 +41,16 @@ class SitesController extends EllieController {
 
 		$data = $request->except(['_token']);
 
+		$data['userid']     = $this->auth->user()->getAuthIdentifier();
+		$data['plan_id']    = 1;
+		$data['status']     = 'building';
+		$data['security']   = 1;
+
 		$site = Sites::create( $data );
 
-		$queue->push('SiteBuilder', $data);
+		$siteData = $site->attributesToArray();
+
+		$queue->push('SiteBuilder', $siteData);
 
 		return redirect( route('sites.index') );
 
