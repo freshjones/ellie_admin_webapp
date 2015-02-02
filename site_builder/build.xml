@@ -21,7 +21,7 @@
     </target>
 
     <target name="run" depends="getport" >
-        <exec command="${progs.docker} run -d -p ${config.usePort}:80 --name=${siteurl} freshjones/ellie_site:latest" outputProperty="siteRunning"/>
+        <exec command="${progs.docker} run -d -p ${config.usePort}:80 --name=${siteurl} ellie/lemp:latest" outputProperty="siteRunning"/>
         <echo msg="Site Running ${siteRunning}" />
     </target>
 
@@ -38,7 +38,7 @@
 
     <target name="sqlfile" depends="parse-info" >
         <echo msg="UPDATE sites SET
-            status='ready',
+            status='running',
             container='${site.container.data}',
             host_ip='${site.host.ip}',
             container_id='${site.container.id}',
@@ -53,7 +53,7 @@
 
     <target name="pause" depends="sqlfile" >
         <taskdef name="sleepcheck" classname="tasks.sleepTask" />
-        <sleepcheck amount="2" />
+        <sleepcheck amount="5" />
         <echo msg="Ok Lets keep going" />
     </target>
 
@@ -74,8 +74,9 @@
         <if>
             <equals arg1="${config.siteCheck}" arg2="200" />
             <then>
+                <property name="config.siteRunning" value="true" override="true" />
                 <exec command="${progs.mysql} -u${db.user} -p${db.pass} ${db.name} &lt; ./build/${siteurl}/container.sql" />
-                <echo msg="Site info stored" />
+                <echo msg="Site is running and info is stored" />
             </then>
             <else>
                 <echo msg="The site check failed for some reason" />
@@ -83,7 +84,48 @@
         </if>
     </target>
 
-    <target name="cleanup_create" depends="store" >
+    <target name="update_site" depends="store" >
+        <if>
+            <istrue value="${config.siteRunning}"/>
+            <then>
+                <echo msg="Site is being updates" />
+                <exec command="${progs.docker} exec ${siteurl} ${config.siteUpdateScript} " />
+                <property name="config.siteUpdated" value="true" override="true" />
+            </then>
+            <else>
+                <echo msg="The site is running but cannot update" />
+            </else>
+        </if>
+    </target>
+
+    <target name="init_site" depends="update_site" >
+        <if>
+            <istrue value="${config.siteUpdated}"/>
+            <then>
+                <echo msg="Site is being configured" />
+                <exec command="${progs.docker} exec ${siteurl} ${config.siteConfigScript} &quot;${sitename}&quot; &quot;${sitecolor}&quot; &quot;${sitetemplate}&quot; " />
+                <property name="config.siteInitialized" value="true" override="true" />
+            </then>
+            <else>
+                <echo msg="The site was updated but cannot initialize ${config.siteRunning}" />
+            </else>
+        </if>
+    </target>
+
+    <target name="init_check" depends="init_site" >
+        <if>
+            <istrue value="${config.siteInitialized}"/>
+            <then>
+                <exec command="${progs.mysql} -u${db.user} -p${db.pass} ${db.name} -e &quot;UPDATE sites SET status=&apos;ready&apos; WHERE id=${siteid}&quot;"  />
+                <echo msg="Site has been initialized" />
+            </then>
+            <else>
+                <echo msg="The site is running but was not initialize ${config.siteInitialized}" />
+            </else>
+        </if>
+    </target>
+
+    <target name="cleanup_create" depends="init_check" >
         <delete dir="./build/${siteurl}" includeemptydirs="true" verbose="true" failonerror="true" />
         <echo msg="Deleted build dir" />
     </target>
@@ -92,7 +134,7 @@
         <echo msg="Site Created" />
     </target>
 
-<!-- ============================================  -->
+    <!-- ============================================  -->
     <!-- Target: destroy a site container              -->
     <!-- ============================================  -->
     <target name="destroy" >
@@ -106,6 +148,14 @@
     <target name="restart" >
         <exec command="docker restart ${siteurl}" />
         <echo msg="Site Restarted" />
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: update site             -->
+    <!-- ============================================  -->
+    <target name="update" >
+        <exec command="${progs.docker} exec ${siteurl} ${config.siteUpdateScript}" passthru="true" />
+        <echo msg="Site Updated" />
     </target>
 
 </project>
