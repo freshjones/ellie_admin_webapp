@@ -1,9 +1,11 @@
-<?php namespace Ellie\Http\Controllers;
+<?php namespace Ellie\Http\Controllers\Sites;
 
+use Ellie\Commands\SiteDeployCommand;
+use Ellie\Commands\SitesUpdate;
+use Ellie\Http\Controllers\EllieController;
 use Ellie\Http\Requests\CreateSiteRequest;
-use Ellie\Sites;
 use Illuminate\Contracts\Queue\Queue;
-use Ellie\Worker;
+use Ellie\Sites;
 
 class SitesController extends EllieController {
 
@@ -48,11 +50,9 @@ class SitesController extends EllieController {
 
 		$site = Sites::create( $data );
 
-		$siteData = $site->attributesToArray();
+		$this->dispatch( new SiteDeployCommand($site) );
 
-		$queue->push('SiteBuilder', $siteData);
-
-		return redirect( route('sites.index') );
+		return redirect( route('site.index', ['id' => $site->id])   );
 
 	}
 
@@ -84,9 +84,9 @@ class SitesController extends EllieController {
 	 * @param  int  $id
 	 * @return Response
 	 */
-	public function update($id)
+	public function update()
 	{
-		//
+		$this->dispatch( new SitesUpdate() );
 	}
 
 	/**

@@ -32,4 +32,5 @@ class Sites extends Model {
 		return $this->belongsTo('Ellie\Plans');
 	}
 
+
 }

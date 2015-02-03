@@ -24,56 +24,39 @@ Route::get('logout', ['as' => 'logout', 'uses' => 'AuthController@logout'] );
 Route::get('login', ['as' => 'login', 'uses' => 'AuthController@login'] );
 Route::post('login', ['as' => 'login', 'uses' => 'AuthController@postLogin'] );
 
+/*
+ * Sites Routes
+ */
+Route::group(['namespace' => 'Sites'], function() {
+	Route::get('sites', ['as' => 'sites.index', 'uses' => 'SitesController@index']);
+	Route::get('sites/update', ['as' => 'sites.update', 'uses' => 'SitesController@update']);
+	Route::post('site', ['as' => 'sites.store', 'uses' => 'SitesController@store'] );
+	Route::get('site/create', ['as' => 'sites.create', 'uses' => 'SitesController@create'] );
+});
 
 
-Route::get('sites', ['as' => 'sites.index', 'uses' => 'SitesController@index'] );
-Route::post('site', ['as' => 'sites.store', 'uses' => 'SitesController@store'] );
-Route::get('site/create', ['as' => 'sites.create', 'uses' => 'SitesController@create'] );
-
-Route::get('site/{site}', ['as' => 'site.index', 'uses' => 'SiteController@index'] );
-Route::get('site/{site}/users', ['as' => 'site.users', 'uses' => 'SiteController@users'] );
-Route::get('site/{site}/plan', ['as' => 'site.plan', 'uses' => 'SiteController@plan'] );
-Route::get('site/{site}/billing', ['as' => 'site.billing', 'uses' => 'SiteController@billing'] );
-Route::get('site/{site}/domains', ['as' => 'site.domains', 'uses' => 'SiteController@domains'] );
-Route::get('site/{site}/configuration', ['as' => 'site.settings', 'uses' => 'SiteController@settings'] );
-
+/*
+ * Site Routes
+ */
+Route::group(['prefix' => 'site', 'namespace' => 'Site'], function() {
+	Route::get('{site}', ['as' => 'site.index', 'uses' => 'SiteController@index'] );
+	Route::get('{site}/users', ['as' => 'site.users', 'uses' => 'SiteController@users'] );
+	Route::get('{site}/plan', ['as' => 'site.plan', 'uses' => 'SiteController@plan'] );
+	Route::get('{site}/billing', ['as' => 'site.billing', 'uses' => 'SiteController@billing'] );
+	Route::get('{site}/domains', ['as' => 'site.domains', 'uses' => 'SiteController@domains'] );
+	Route::get('{site}/configuration', ['as' => 'site.settings', 'uses' => 'SiteController@settings'] );
+	Route::get('{site}/self-update', ['as' => 'site.selfupdate', 'uses' => 'SiteController@update'] );
+	Route::get('{site}/delete', ['as' => 'site.confirm.delete', 'uses' => 'SiteController@confirmDelete'] );
+	Route::post('{site}/delete', ['as' => 'site.delete', 'uses' => 'SiteController@delete'] );
+});
 
 Route::resource('account', 'AccountController' );
 Route::resource('help', 'HelpController' );
 
-
-class SiteBuilder {
-
-	public function fire($job, $data)
-	{
-
-		/*
-		array:7 [▼
-		  "name" => "test8"
-		  "url" => "test8"
-		  "template_id" => "2"
-		  "colorscheme_id" => "2"
-		  "updated_at" => "2015-01-21 17:10:34"
-		  "created_at" => "2015-01-21 17:10:34"
-		  "id" => 6
-		]
-		 */
-
-		//execute the site builder script
-		$command = getenv('PHING') . ' create -f ' . getenv('SITEBUILDER') . '/build.xml'
-						. ' -Dsiteid="' . $data['id']. '"'
-						. ' -Dsiteuid="' . $data['userid']. '"'
-						. ' -Dsiteurl="' . $data['url']. '"'
-						. ' -Dsitename="' . $data['name'] . '"'
-						. ' -Dsitetemplate="' . $data['template_id'] . '"'
-						. ' -Dsitecolor="' . $data['colorscheme_id'] . '"'
-						. '';
-
-		exec($command);
-
-	}
-
-}
+Route::group(['prefix' => 'api/v1', 'namespace' => 'Api'], function()
+{
+	//Route::get('site-version', ['as' => 'api.site.version', 'uses' => 'SiteController@index']);
+});
 
 
 //Route::resource('sites', 'SitesController' );

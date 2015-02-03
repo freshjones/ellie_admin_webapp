@@ -137,9 +137,18 @@
     <!-- ============================================  -->
     <!-- Target: destroy a site container              -->
     <!-- ============================================  -->
-    <target name="destroy" >
-        <exec command="docker stop ${siteurl} &amp;&amp; docker rm ${siteurl}" />
-        <echo msg="Site Removed" />
+    <target name="remove" depends="remove-site-from-db" >
+        <echo msg="Site Removed Completely" />
+    </target>
+
+    <target name="remove-site-from-db" depends="destroy-site" >
+        <exec command="${progs.mysql} -u${db.user} -p${db.pass} ${db.name} -e &quot;DELETE FROM sites WHERE id=${siteid}&quot;"  />
+        <echo msg="Site deleted from DB" />
+    </target>
+
+    <target name="destroy-site" depends="backup-site">
+        <exec command="docker stop ${siteurl} &amp;&amp; docker rm -v ${siteurl}" />
+        <echo msg="Site Removed from Docker" />
     </target>
 
     <!-- ============================================  -->
@@ -154,8 +163,15 @@
     <!-- Target: update site             -->
     <!-- ============================================  -->
     <target name="update" >
-        <exec command="${progs.docker} exec ${siteurl} ${config.siteUpdateScript}" passthru="true" />
+        <exec command="${progs.docker} exec ${siteurl} ${config.siteUpdateScript}" />
         <echo msg="Site Updated" />
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: backup site             -->
+    <!-- ============================================  -->
+    <target name="backup-site"  >
+        <!-- TODO create a backup target -->
     </target>
 
 </project>

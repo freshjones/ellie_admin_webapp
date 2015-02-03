@@ -4,17 +4,13 @@
 
     <section class="container">
 
-        <a href="http://{{ $site->url }}.{{ getenv('APP_NAME') }}" target="_blank" class="btn btn-default btn-slim">View this site</a>
+        <div class="alert alert-danger" role="alert">
+           <h3>Danger Zone</h3>
+            <p>Make sure you have a backup before deleting. You will need to confirm the deletion on the next page.</p>
+            <a href="{{ route('site.delete', $site->id ) }}" class="btn btn-danger btn-slim">Delete Site</a>
+        </div>
 
     </section>
 
-    <section class="container">
-
-        <article class="content">
-
-            setings
-        </article>
-
-    </section>
 
 @stop
