@@ -3,3 +3,7 @@
 .env
 .sass-cache
 .idea
+phing.log
+site_builder/build
+site_builder/build/*
+

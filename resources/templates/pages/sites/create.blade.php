@@ -22,7 +22,7 @@
             <!-- Site_url Form Input -->
             <div class="form-group">
                 {!! Form::label('url', 'Site Url:') !!}
-                {!! Form::text('url', null, ['class' => 'form-control', 'placeholder' => 'Site Url' ]) !!}.{{ getenv('APP_NAME') }}
+                {!! Form::text('url', null, ['class' => 'form-control', 'placeholder' => 'Site Url' ]) !!}.{{ getenv('DOMAIN') }}
             </div>
 
             <!-- Template Form Input -->

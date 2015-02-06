@@ -5,8 +5,10 @@ use Ellie\Http\Controllers\EllieController;
 use Illuminate\Routing\Router;
 use Illuminate\Contracts\Auth\Guard;
 use Ellie\Commands\SiteUpdate;
-use Ellie\Http\Requests\DeleteSiteRequest;
+use Ellie\Http\Requests\ConfirmSiteRequest;
 use Ellie\Commands\Site\SiteDeleteCommand;
+use Ellie\Commands\Site\SiteStartCommand;
+use Ellie\Commands\Site\SiteStopCommand;
 
 class SiteController extends EllieController {
 
@@ -82,20 +84,82 @@ class SiteController extends EllieController {
 	}
 
 	public function confirmDelete() {
-
 		return view('pages.site.confirmDelete', $this->params );
-
 	}
 
-	public function delete(DeleteSiteRequest $request)
+	public function confirmStart() {
+		$this->setParams('route', 'site.start' );
+		$this->setParams('action', 'Start' );
+		$this->setParams('message', 'Enter your password below to confirm you would like to restart this site.' );
+		return view('pages.site.confirmAction', $this->params );
+	}
+
+	public function start(ConfirmSiteRequest $request)
 	{
-		$creds = array();
-		$creds['email'] = $this->auth->user()->email;
-		$creds['password'] = $request->password;
 
 		$site = $this->getParam('site');
 
-		if( $this->auth->validate($creds) )
+		$isValid = $this->validateSiteRequestCredentials( $request->password );
+
+		if( $isValid )
+		{
+
+			$site->status = 'Restarting';
+			$site->save();
+
+			$this->dispatch( new SiteStartCommand($site) );
+
+			return redirect( route('site.index', $site->id) );
+		}
+
+		return redirect( route('site.confirm.start', $site->id) )
+			->withErrors([
+				'password' => 'That password does not match our records.',
+			]);
+
+	}
+
+	public function confirmStop() {
+		$this->setParams('route', 'site.stop' );
+		$this->setParams('action', 'Stop' );
+		$this->setParams('message', 'Enter your password below to confirm you would like to stop this site. <strong>Note: users will no longer be able to access this website while it is stopped</strong>' );
+		return view('pages.site.confirmAction', $this->params );
+	}
+
+	public function stop(ConfirmSiteRequest $request)
+	{
+
+		$site = $this->getParam('site');
+
+		$isValid = $this->validateSiteRequestCredentials( $request->password );
+
+		if( $isValid )
+		{
+
+			$site->status = 'Stopping';
+			$site->save();
+
+			$this->dispatch( new SiteStopCommand($site) );
+
+			return redirect( route('site.index', $site->id) );
+		}
+
+		return redirect( route('site.confirm.stop', $site->id) )
+			->withErrors([
+				'password' => 'That password does not match our records.',
+			]);
+
+	}
+
+
+	public function delete(ConfirmSiteRequest $request)
+	{
+
+		$site = $this->getParam('site');
+
+		$isValid = $this->validateSiteRequestCredentials( $request->password );
+
+		if( $isValid )
 		{
 
 			$site->status = 'Deleting';
@@ -117,14 +181,20 @@ class SiteController extends EllieController {
 		$this->params[$param] = $value;
 	}
 
-	private function getParams()
-	{
-		return $this->params;
-	}
-
 	private function getParam($param)
 	{
 		return $this->params[$param];
+	}
+
+	private function validateSiteRequestCredentials($password)
+	{
+
+		$creds = array();
+		$creds['email'] = $this->auth->user()->email;
+		$creds['password'] = $password;
+
+		return $this->auth->validate($creds);
+
 	}
 
 }

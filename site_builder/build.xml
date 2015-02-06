@@ -14,29 +14,29 @@
         <mkdir dir="./build/${siteurl}" />
     </target>
 
-    <target name="getport" depends="prepare" >
+    <target name="getport" >
         <taskdef name="getport" classname="tasks.getPortTask" />
         <getport port="49153" />
         <echo msg="Container port is: ${config.usePort}" />
     </target>
 
-    <target name="run" depends="getport" >
-        <exec command="${progs.docker} run -d -p ${config.usePort}:80 --name=${siteurl} ellie/lemp:latest" outputProperty="siteRunning"/>
+    <target name="create-container">
+        <exec command="${progs.docker} run -d -p ${config.usePort}:80 --name=&quot;${siteurl}&quot; --hostname=&quot;${siteurl}&quot; ellie/lemp:latest" outputProperty="siteRunning"/>
         <echo msg="Site Running ${siteRunning}" />
     </target>
 
-    <target name="info" depends="run" >
+    <target name="gen-container-info">
         <exec command="${progs.docker} inspect ${siteurl} > ./build/${siteurl}/container.txt" />
         <echo msg="Site File Created" />
     </target>
 
-    <target name="parse-info" depends="info" >
+    <target name="parse-info" depends="gen-container-info" >
         <taskdef name="parsejson" classname="tasks.parseJsonTask" />
         <loadfile property="containerinfo" file="./build/${siteurl}/container.txt"/>
         <parsejson jsonfile="${containerinfo}" />
     </target>
 
-    <target name="sqlfile" depends="parse-info" >
+    <target name="gen-site-sql" depends="parse-info" >
         <echo msg="UPDATE sites SET
             status='running',
             container='${site.container.data}',
@@ -45,19 +45,18 @@
             container_ip='${site.container.ip}',
             container_image='${site.container.image}',
             container_port='${site.container.port}'
-            WHERE id=${siteid}
-            AND userid=${siteuid}"
-            file="./build/${siteurl}/container.sql" />
+            WHERE id=${siteid}"
+              file="./build/${siteurl}/container.sql" />
         <echo msg="SQL file created" />
     </target>
 
-    <target name="pause" depends="sqlfile" >
+    <target name="pause" >
         <taskdef name="sleepcheck" classname="tasks.sleepTask" />
         <sleepcheck amount="5" />
         <echo msg="Ok Lets keep going" />
     </target>
 
-    <target name="sitecheck" depends="pause" >
+    <target name="run-container-check">
         <if>
             <istrue value="${config.runCheck}"/>
             <then>
@@ -65,12 +64,12 @@
                 <echo msg="${config.siteCheck}" />
             </then>
             <else>
-                <echo msg="couldn't run site check for some reason" />
+                <fail msg="couldn't run site check for some reason" />
             </else>
         </if>
     </target>
 
-    <target name="store" depends="sitecheck" >
+    <target name="update-site-db-record" depends="run-container-check" >
         <if>
             <equals arg1="${config.siteCheck}" arg2="200" />
             <then>
@@ -79,26 +78,26 @@
                 <echo msg="Site is running and info is stored" />
             </then>
             <else>
-                <echo msg="The site check failed for some reason" />
+                <fail msg="The site check failed for some reason" />
             </else>
         </if>
     </target>
 
-    <target name="update_site" depends="store" >
+    <target name="update-site">
         <if>
             <istrue value="${config.siteRunning}"/>
             <then>
-                <echo msg="Site is being updates" />
+                <echo msg="Site is being updated" />
                 <exec command="${progs.docker} exec ${siteurl} ${config.siteUpdateScript} " />
                 <property name="config.siteUpdated" value="true" override="true" />
             </then>
             <else>
-                <echo msg="The site is running but cannot update" />
+                <fail msg="The site is running but cannot update" />
             </else>
         </if>
     </target>
 
-    <target name="init_site" depends="update_site" >
+    <target name="run-site-initialization-script" >
         <if>
             <istrue value="${config.siteUpdated}"/>
             <then>
@@ -107,12 +106,12 @@
                 <property name="config.siteInitialized" value="true" override="true" />
             </then>
             <else>
-                <echo msg="The site was updated but cannot initialize ${config.siteRunning}" />
+                <fail msg="The site was updated but cannot initialize ${config.siteRunning}" />
             </else>
         </if>
     </target>
 
-    <target name="init_check" depends="init_site" >
+    <target name="configure-site" depends="run-site-initialization-script" >
         <if>
             <istrue value="${config.siteInitialized}"/>
             <then>
@@ -120,42 +119,86 @@
                 <echo msg="Site has been initialized" />
             </then>
             <else>
-                <echo msg="The site is running but was not initialize ${config.siteInitialized}" />
+                <fail msg="The site is running but was not initialize ${config.siteInitialized}" />
             </else>
         </if>
     </target>
 
-    <target name="cleanup_create" depends="init_check" >
+    <target name="cleanup-build-dir" >
         <delete dir="./build/${siteurl}" includeemptydirs="true" verbose="true" failonerror="true" />
         <echo msg="Deleted build dir" />
     </target>
 
-    <target name="create" depends="cleanup_create" >
+    <target name="create" depends="prepare, getport, create-container, gen-site-sql, create-nginx-site, pause, update-site-db-record, update-site, configure-site, cleanup-build-dir" >
         <echo msg="Site Created" />
     </target>
 
     <!-- ============================================  -->
     <!-- Target: destroy a site container              -->
     <!-- ============================================  -->
-    <target name="remove" depends="remove-site-from-db" >
-        <echo msg="Site Removed Completely" />
+
+    <target name="container-exists">
+        <exec command="docker ps -q -f id=${container_id}" outputProperty="container.id" />
+        <if>
+            <equals arg1="${container.id}" arg2="" />
+            <then>
+                <property name="container.exists" value="false" override="true" />
+            </then>
+            <else>
+                <property name="container.exists" value="true" override="true" />
+            </else>
+        </if>
     </target>
 
-    <target name="remove-site-from-db" depends="destroy-site" >
+    <target name="destroy-site">
+        <if>
+            <istrue value="${container.exists}"/>
+            <then>
+                <exec command="docker stop ${container_id} &amp;&amp; docker rm -v ${container_id}" />
+                <echo msg="Site Removed from Docker" />
+            </then>
+            <else>
+                <echo msg="No Container within docker with this name" />
+            </else>
+        </if>
+    </target>
+
+    <target name="remove-site-from-db">
         <exec command="${progs.mysql} -u${db.user} -p${db.pass} ${db.name} -e &quot;DELETE FROM sites WHERE id=${siteid}&quot;"  />
         <echo msg="Site deleted from DB" />
     </target>
 
-    <target name="destroy-site" depends="backup-site">
-        <exec command="docker stop ${siteurl} &amp;&amp; docker rm -v ${siteurl}" />
-        <echo msg="Site Removed from Docker" />
+    <target name="remove" depends="container-exists, destroy-site, remove-nginx-site, remove-site-from-db" >
+        <echo msg="Site Removed Completely" />
     </target>
 
     <!-- ============================================  -->
     <!-- Target: restart a site container              -->
     <!-- ============================================  -->
-    <target name="restart" >
-        <exec command="docker restart ${siteurl}" />
+
+    <target name="restart-docker" >
+        <exec command="docker restart ${container_id}" />
+        <echo msg="Site Restarted" />
+    </target>
+
+    <target name="restart" depends="prepare, restart-docker, gen-site-sql, create-nginx-site, pause, update-site-db-record, update-site, cleanup-build-dir" >
+        <echo msg="Site Restarted" />
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: stop a site container              -->
+    <!-- ============================================  -->
+
+    <target name="stop-docker" >
+        <exec command="docker stop ${container_id}" />
+        <echo msg="Site Restarted" />
+    </target>
+
+    <target name="update-site-status-stopped">
+        <exec command="${progs.mysql} -u${db.user} -p${db.pass} ${db.name} -e &quot;UPDATE sites SET status=&apos;stopped&apos; WHERE container_id=&apos;${container_id}&apos;&quot;" />
+    </target>
+
+    <target name="stop" depends="stop-docker, remove-nginx-site, update-site-status-stopped" >
         <echo msg="Site Restarted" />
     </target>
 
@@ -173,5 +216,20 @@
     <target name="backup-site"  >
         <!-- TODO create a backup target -->
     </target>
+
+    <!-- ============================================  -->
+    <!-- Target: nginx create a site sub-project       -->
+    <!-- ============================================  -->
+    <target name="create-nginx-site">
+        <phing phingfile="nginx.xml" target="nginx-create" haltonfailure="true" />
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: nginx remove a site sub-project       -->
+    <!-- ============================================  -->
+    <target name="remove-nginx-site">
+        <phing phingfile="nginx.xml" target="nginx-remove" haltonfailure="true" />
+    </target>
+
 
 </project>

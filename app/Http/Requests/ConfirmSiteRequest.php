@@ -4,7 +4,7 @@ use Ellie\Http\Requests\Request;
 use Illuminate\Contracts\Auth\Guard;
 use Ellie\Sites;
 
-class DeleteSiteRequest extends Request {
+class ConfirmSiteRequest extends Request {
 
 	/**
 	 * Determine if the user is authorized to make this request.

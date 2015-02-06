@@ -33,7 +33,7 @@ class SiteDeployCommand extends Command implements SelfHandling, ShouldBeQueued 
 		$command = getenv('PHING') . ' create -f ' . getenv('SITEBUILDER') . '/build.xml'
 			. ' -Dsiteid="' . $this->site->id . '"'
 			. ' -Dsiteuid="' . $this->site->userid . '"'
-			. ' -Dsiteurl="' . $this->site->url . '"'
+			. ' -Dsiteurl="' . $this->site->url . '.' . getenv('DOMAIN') . '"'
 			. ' -Dsitename="' . $this->site->name . '"'
 			. ' -Dsitetemplate="' . $this->site->template_id . '"'
 			. ' -Dsitecolor="' . $this->site->colorscheme_id . '"'

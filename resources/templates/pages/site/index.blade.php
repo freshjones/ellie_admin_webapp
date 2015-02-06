@@ -13,10 +13,10 @@
                 <dd><span class="label label-success">{{ $site->status }}</span></dd>
 
                 <dt>Site Name:</dt>
-                <dd><a href="http://{{ $site->host_ip }}:{{ $site->container_port }}" target="_blank">{{ $site->name }}</a></dd>
+                <dd><a href="http://{{ $site->url }}.{{ getenv('DOMAIN') }}" target="_blank">{{ $site->name }}</a></dd>
 
                 <dt>Site URL:</dt>
-                <dd><a href="http://{{ $site->host_ip }}:{{ $site->container_port }}" target="_blank">http://{{ $site->host_ip }}:{{ $site->container_port }}</a></dd>
+                <dd><a href="http://{{ $site->url }}.{{ getenv('DOMAIN') }}" target="_blank">http://{{ $site->url }}.{{ getenv('DOMAIN') }}</a></dd>
 
                 <dt>Current Plan:</dt>
                 <dd>{{ $site->plan->name }}</dd>

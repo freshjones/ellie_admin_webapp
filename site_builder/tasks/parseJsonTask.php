@@ -54,6 +54,8 @@ class parseJsonTask extends Task {
 		$this->project->setProperty('site.container.ip', $container['NetworkSettings']['IPAddress']);
 		$this->project->setProperty('site.container.image', $container['Config']['Image']);
 		$this->project->setProperty('site.container.port', $container['NetworkSettings']['Ports']['80/tcp'][0]['HostPort']);
+		$this->project->setProperty('site.container.domain', $container['Config']['Domainname']);
+		$this->project->setProperty('site.container.host', $container['Config']['Hostname']);
 
 	}
 }

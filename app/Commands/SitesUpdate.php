@@ -1,6 +1,6 @@
 <?php namespace Ellie\Commands;
 
-use Ellie\Commands\Command;
+use Ellie\Commands\Site\SiteUpdate;
 
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;

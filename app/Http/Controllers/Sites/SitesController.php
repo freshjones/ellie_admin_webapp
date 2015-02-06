@@ -43,6 +43,7 @@ class SitesController extends EllieController {
 
 		$data = $request->except(['_token']);
 
+		$data['url']        = $data['url'] . '.' . getenv('DOMAIN');
 		$data['userid']     = $this->auth->user()->getAuthIdentifier();
 		$data['plan_id']    = 1;
 		$data['status']     = 'building';

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="NginxConfigurations" default="nginx-create">
+
+    <!-- ============================================  -->
+    <!-- (DEFAULT)  Target: Create an nginx site    -->
+    <!-- ============================================  -->
+
+    <target name="prepare">
+        <echo msg="Making directory ./build" />
+        <mkdir dir="./build/${siteurl}/nginx/" />
+    </target>
+
+    <target name="build-config-file" depends="prepare" >
+
+        <echo file="./build/${siteurl}/nginx/${siteurl}.conf" append="false">upstream ${siteurl} {
+    server ${site.container.ip}:80;
+}</echo>
+
+        <echo file="./build/${siteurl}/nginx/${siteurl}.conf" append="true">
+
+server {
+
+    server_name ${siteurl};
+
+    location / {
+        proxy_pass http://${siteurl};
+        include /etc/nginx/proxy_params;
+    }
+}</echo>
+
+    </target>
+
+    <target name="move-config-file" depends="build-config-file" >
+        <exec command="sudo cp ./build/${siteurl}/nginx/${siteurl}.conf /etc/nginx/sites-available/${siteurl}" />
+        <!-- <move file="./build/${siteurl}/nginx/${siteurl}.conf" tofile="/etc/nginx/sites-available/${siteurl}" overwrite="true"/> -->
+    </target>
+
+    <target name="create-symlink" depends="move-config-file" >
+        <exec command="sudo ln -s /etc/nginx/sites-available/${siteurl} /etc/nginx/sites-enabled/${siteurl}" />
+        <!-- <symlink target="/etc/nginx/sites-available/${siteurl}" link="/etc/nginx/sites-enabled/${siteurl}" /> -->
+    </target>
+
+    <target name="nginx-create" depends="create-symlink, nginx-reload">
+        <echo msg="nginx site configuration file created and server reloaded" />
+    </target>
+
+    <!-- ============================================  -->
+    <!-- Target: Remove nginx site    -->
+    <!-- ============================================  -->
+
+    <target name="remove-config-file" >
+        <exec command="sudo rm /etc/nginx/sites-available/${siteurl}" />
+        <!-- <move file="./build/${siteurl}/nginx/${siteurl}.conf" tofile="/etc/nginx/sites-available/${siteurl}" overwrite="true"/> -->
+    </target>
+
+    <target name="remove-symlink" depends="remove-config-file" >
+        <exec command="sudo rm /etc/nginx/sites-enabled/${siteurl}" />
+        <!-- <symlink target="/etc/nginx/sites-available/${siteurl}" link="/etc/nginx/sites-enabled/${siteurl}" /> -->
+    </target>
+
+    <target name="nginx-remove" depends="remove-symlink, nginx-reload">
+        <echo msg="nginx site configuration file removed and server reloaded" />
+    </target>
+
+
+    <!-- ============================================  -->
+    <!-- Target: Relaod an nginx server    -->
+    <!-- ============================================  -->
+
+    <target name="set-config-property">
+        <exec command="sudo ${progs.nginx} -t" outputProperty="config.serverConfigMsg"/>
+    </target>
+
+    <target name="check-config" depends="set-config-property">
+        <if>
+            <contains string="${config.serverConfigMsg}" substring="test is successful" casesensitive="false" />
+            <then>
+                <property name="config.reloadServer" value="true" override="true" />
+                <echo msg="nginx config file is good and can be reloaded" />
+            </then>
+            <else>
+                <echo msg="The site configuration file is no good" />
+            </else>
+        </if>
+    </target>
+
+    <target name="nginx-reload" depends="check-config" >
+        <if>
+            <istrue value="${config.reloadServer}"/>
+            <then>
+                <exec command="sudo service nginx reload" />
+            </then>
+            <else>
+                <fail message="nginx needs to be reloaded but can not for some reason" />
+            </else>
+        </if>
+    </target>
+
+</project>

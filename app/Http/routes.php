@@ -46,8 +46,15 @@ Route::group(['prefix' => 'site', 'namespace' => 'Site'], function() {
 	Route::get('{site}/domains', ['as' => 'site.domains', 'uses' => 'SiteController@domains'] );
 	Route::get('{site}/configuration', ['as' => 'site.settings', 'uses' => 'SiteController@settings'] );
 	Route::get('{site}/self-update', ['as' => 'site.selfupdate', 'uses' => 'SiteController@update'] );
+
 	Route::get('{site}/delete', ['as' => 'site.confirm.delete', 'uses' => 'SiteController@confirmDelete'] );
 	Route::post('{site}/delete', ['as' => 'site.delete', 'uses' => 'SiteController@delete'] );
+
+	Route::get('{site}/stop', ['as' => 'site.confirm.stop', 'uses' => 'SiteController@confirmStop'] );
+	Route::post('{site}/stop', ['as' => 'site.stop', 'uses' => 'SiteController@stop'] );
+
+	Route::get('{site}/start', ['as' => 'site.confirm.start', 'uses' => 'SiteController@confirmStart'] );
+	Route::post('{site}/start', ['as' => 'site.start', 'uses' => 'SiteController@start'] );
 });
 
 Route::resource('account', 'AccountController' );

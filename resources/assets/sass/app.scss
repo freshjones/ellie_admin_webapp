@@ -76,16 +76,40 @@ input[type="text"], input[type="password"]
   color:darken(#ccc, 50%);
 }
 
+.btn-success, .btn.success
+{
+  border-color:darken(#4cae4c, 10%);
+  background-color: #4cae4c;
+}
+
 .btn-primary, .btn.primary
 {
-  border-color:darken(#4169E1, 20%);
+  border-color:darken(#4169E1, 10%);
   background-color: #4169E1;
 }
 
 .btn-danger, .btn.danger
 {
-  border-color:darken(#d9534f, 20%);
+  border-color:darken(#d9534f, 10%);
   background-color: #d9534f;
+}
+
+.btn-info, .btn.info
+{
+  border-color:darken(#5bc0de, 10%);
+  background-color: #5bc0de;
+}
+
+.btn-warning, .btn.warning
+{
+  border-color:darken(#eea236, 10%);
+  background-color: #eea236;
+}
+
+.btn-link, .btn.link
+{
+  border-color:transparent;
+  background-color: transparent;
 }
 
 .form-group
